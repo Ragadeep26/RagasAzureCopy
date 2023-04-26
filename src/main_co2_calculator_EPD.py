@@ -4,11 +4,13 @@ from src.co2_calculator.projects.project import Project
 #from src.co2_calculator.projects.graphs import (create_tCO2eq_piechart, create_tCO2eq_piechart_matplotlib, create_tCO2eq_barchart_all_projects_categories, 
 #                                                create_tCO2eq_barchart_all_projects_categories_2, 
 #                                                create_tCO2eq_barchart_all_projects_matplotlib, create_tCO2eq_barchart_all_categories_matplotlib)
-from src.co2_calculator.projects.graphs import (create_tCO2eq_piechart_matplotlib, create_tCO2eq_barchart_all_categories_matplotlib)
+from src.co2_calculator.projects.graphs import (create_tCO2eq_piechart_matplotlib, create_tCO2eq_barchart_all_categories_matplotlib, create_tCO2eq_barchart_epd_matplotlib)
 from src.co2_calculator.structures.wall_pile import PileWall
 from src.co2_calculator.structures.wall_diaphragm import DiaphragmWall
 from src.co2_calculator.structures.wall_MIP import MIPWall
+from src.co2_calculator.structures.wall_MIP_EPD import MIPWall_EPD
 from src.co2_calculator.structures.wall_MIP_steelprofile import MIPSteelProfileWall
+from src.co2_calculator.structures.wall_MIP_steelprofile_EPD import MIPSteelProfileWall_EPD
 from src.co2_calculator.structures.anchor import Anchor
 from matplotlib.backends.backend_pdf import PdfPages
 from src.report.report_matplotlib import Report
@@ -17,8 +19,8 @@ password = 'bara-3854'
 password_user = ''
 parameters_init = {'projects': [], 'project_id': ''}
 
-def main_CO2_calculator(st, parameters=None):
-    """ This is a CO2 calculator
+def main_CO2_calculator_EPD(st, parameters=None):
+    """ This is a CO2 calculator EPD
     """
     if parameters is None:
         parameters = parameters_init
@@ -107,7 +109,7 @@ def continue_program(st, parameters):
     # structure(s) adding to a selected project
     col1, col2, col3 = st.columns(3)
     project_names_current = [project.project_variant for project in parameters['projects']]
-    foundation_structures = ('Anchor', 'MIP wall', 'MIP wall with steel profiles', 'Pile/ Pile wall', 'Diaphragm wall')
+    foundation_structures = ('Anchor', 'MIP wall', 'MIP wall EPD', 'MIP wall with steel profiles', 'MIP wall with steel profiles EPD', 'Pile/ Pile wall', 'Diaphragm wall')
     project_names_to_be_assigned = col1.multiselect('Select a construction variant to assign structure(s) to', project_names_current)
     structures_to_assign = col2.multiselect('Select structure(s) to assign', foundation_structures)
     button_add_structures_to_projects =  col3.button('Add structures {0} to construction variant {1}'.format(structures_to_assign, project_names_to_be_assigned), key='add_structure')
@@ -263,6 +265,27 @@ def continue_program(st, parameters):
                         axis = create_tCO2eq_piechart_matplotlib(structure)
                         col2.pyplot(axis.figure, use_container_width=False)
 
+                    elif isinstance(structure, MIPWall_EPD):
+                        tab.header('Details for MIP as cut-off wall according to EPD')
+                        cols = tab.columns(3)
+                        structure.wall_area = cols[0].number_input('Wall area [m^2]', value=structure.wall_area, step=100.0, help='Area of the constructed wall', key='wall_area_MIPwall'+str(i))
+                        structure.wall_thickness = cols[1].number_input('Wall thickness [m]', value=structure.wall_thickness, step=0.1, key='wall_thickness_MIPwall'+str(i))
+                        MIP_classes = ['Class I', 'Class II', 'Class III', 'Class IV', 'Class V', 'Class VI']
+                        info_MIP_classes = """
+                        \nClass:     Cement content z [kg/m^3]
+                        \nI    :     60 <= z <= 100
+                        \nII   :     100 <= z <= 150
+                        \nIII  :     150 <= z <= 230
+                        \nIV   :     230 <= z <= 360
+                        \nV    :     360 <= z <= 520
+                        \nVI   :     520 <= z <= 600
+                        """
+                        structure.classification = cols[2].selectbox('BAUER MIP class (currently only for Class I)', MIP_classes, index=MIP_classes.index(structure.classification), help=info_MIP_classes, key='class_MIPwall'+str(i))  # string
+                        #structure.classification = MIP_classes.index(classification)# index
+                        # calc tCO2_eq
+                        sum_tco2_eq = structure.calc_co2eq()
+                        tab.markdown('### Results $tCO2eq$ for MIP wall as cut-off wall: {0:.1f}'.format(sum_tco2_eq))
+
                     elif isinstance(structure, MIPSteelProfileWall):
                         tab.header('Details for MIP wall with steel profiles')
                         cols = tab.columns(3)
@@ -291,6 +314,29 @@ def continue_program(st, parameters):
                         axis = create_tCO2eq_piechart_matplotlib(structure)
                         col2.pyplot(axis.figure, use_container_width=False)
 
+                    elif isinstance(structure, MIPSteelProfileWall_EPD):
+                        tab.header('Details for MIP wall with steel profiles according to EPD')
+                        cols = tab.columns(4)
+                        structure.wall_area = cols[0].number_input('Wall area [m^2]', value=structure.wall_area, step=100.0, help='Area of the constructed wall', key='wall_area_MIPSteelwall'+str(i))
+                        structure.wall_thickness = cols[1].number_input('Wall thickness [m]', value=structure.wall_thickness, step=0.1, key='wall_thickness_MIPSteelwall'+str(i))
+                        MIP_classes = ['Class I', 'Class II', 'Class III', 'Class IV', 'Class V', 'Class VI']
+                        info_MIP_classes = """
+                        \nClass:     Cement content z [kg/m^3]
+                        \nI    :     60 <= z <= 100
+                        \nII   :     100 <= z <= 150
+                        \nIII  :     150 <= z <= 230
+                        \nIV   :     230 <= z <= 360
+                        \nV    :     360 <= z <= 520
+                        \nVI   :     520 <= z <= 600
+                        """
+                        structure.classification = cols[2].selectbox('BAUER MIP class (currently only for Class I)', MIP_classes, index=MIP_classes.index(structure.classification), help=info_MIP_classes, key='class_MIPSteelWall'+str(i))  # string
+
+                        structure.weight_steelprofile = cols[3].number_input('Weight of steel beams [ton]', value=structure.weight_steelprofile, step=1.0, help='According to input field in EFFC Carbon Calculator. Distance to steel supplier: 300 km (not variable)', key='weight_steelprofile_MIPSteelwall'+str(i))
+                        #structure.classification = MIP_classes.index(classification)# index
+                        # calc tCO2_eq
+                        sum_tco2_eq = structure.calc_co2eq()
+                        tab.markdown('### Results $tCO2eq$ for MIP wall as cut-off wall: {0:.1f}'.format(sum_tco2_eq))
+
         with tabs[-1]: # All projects
             #st.header('$tCO2eq$ summary')
             #st.markdown('### $tCO2eq$ total')
@@ -315,39 +361,52 @@ def continue_program(st, parameters):
                         cols[i].write('Diaphragm wall $tCO2eq$: {0:.1f}'.format(structure_tco2_eq))
                     elif isinstance(structure, MIPWall):
                         cols[i].write('MIP as cut-off wall $tCO2eq$: {0:.1f}'.format(structure_tco2_eq))
+                    elif isinstance(structure, MIPWall_EPD):
+                        cols[i].write('MIP as cut-off wall according to EPD $tCO2eq$: {0:.1f}'.format(structure_tco2_eq))
                     elif isinstance(structure, MIPSteelProfileWall):
                         cols[i].write('MIP wall with steel profiles $tCO2eq$: {0:.1f}'.format(structure_tco2_eq))
+                    elif isinstance(structure, MIPSteelProfileWall_EPD):
+                        cols[i].write('MIP wall with steel profiles according to EPD $tCO2eq$: {0:.1f}'.format(structure_tco2_eq))
 
+            #try:
+            #col1, col2 = st.columns(2)
+            is_epd = False      # check if CO2_eq of any structure is calculated according to EPD
+            for project in parameters['projects']:
+                for structure in project.structures:
+                    if isinstance(structure, MIPWall_EPD) or isinstance(structure, MIPSteelProfileWall_EPD):
+                        is_epd = True
+                        break
+            if is_epd:
+                if len(parameters['projects']) > 1:
+                    st.header('$tCO2eq$ for all construction variants')
+                else:
+                    st.header("$tCO2eq$ for the construction variant")
+                _, axis_cats, df_cats = create_tCO2eq_barchart_epd_matplotlib(parameters['projects'])
+                st.pyplot(axis_cats.figure, use_container_width=False)
 
-            if len(parameters['projects']) > 1:
-                st.header('$tCO2eq$ breakdown for all construction variants')
             else:
-                st.header("$tCO2eq$ breakdown")
-            #st.markdown('### $tCO2eq$ summary')
-            categrogy = {'MP': 'Material production', 'MT':'Material transport', 'DT': 'Disposal transport', 'EQ': 'Equipment', 'EE': 'Energy/ electricity/ hour', 
-                        'MD': 'Mobilization/ demobilization', 'PT': 'Persons transport'}
-            cols = st.columns(4)
-            for i, (key, value) in enumerate(categrogy.items()):
-                cols[i%4].write('{0}: {1}'.format(key, value))
-            #c = create_tCO2eq_barchart_all_projects_categories(parameters['projects'])
-            #c = create_tCO2eq_barchart_all_projects_categories_2(parameters['projects'])
-            #st.altair_chart(c, use_container_width=False)
+                if len(parameters['projects']) > 1:
+                    st.header('$tCO2eq$ breakdown for all construction variants')
+                else:
+                    st.header("$tCO2eq$ breakdown")
+                #st.markdown('### $tCO2eq$ summary')
+                categrogy = {'MP': 'Material production', 'MT':'Material transport', 'DT': 'Disposal transport', 'EQ': 'Equipment', 'EE': 'Energy/ electricity/ hour', 
+                            'MD': 'Mobilization/ demobilization', 'PT': 'Persons transport'}
+                cols = st.columns(4)
+                for i, (key, value) in enumerate(categrogy.items()):
+                    cols[i%4].write('{0}: {1}'.format(key, value))
 
-            try:
-                #col1, col2 = st.columns(2)
                 #_, axis_projs, df_prjs = create_tCO2eq_barchart_all_projects_matplotlib(parameters['projects'])
                 _, axis_cats, df_cats = create_tCO2eq_barchart_all_categories_matplotlib(parameters['projects'])
                 #col1.pyplot(axis_projs.figure, use_container_width=False)
                 st.pyplot(axis_cats.figure, use_container_width=False)
 
-            except: # exception when a project has no structures assigned to it
-                pass
+            #except: # exception when a project has no structures assigned to it
+            #    pass
 
 
             #st.bar_chart(df)
             
-
-
     # Download project data to pickle file
     if parameters['projects']:
         st.subheader('Save session state')
@@ -369,8 +428,11 @@ def continue_program(st, parameters):
         #y = report_page1.add_overview_info_CO2(parameters['projects'])
         y = report_page2.add_overview_info_CO2(parameters['projects'])
         try:
-            #report_page1.add_summary_graph_CO2_projects(y, parameters['projects'], df_prjs)
-            report_page2.add_summary_graph_CO2_categories(y, parameters['projects'], df_cats)
+            if is_epd:
+                report_page2.add_summary_graph_CO2_EPD(y, parameters['projects'], df_cats)
+            else:
+                #report_page1.add_summary_graph_CO2_projects(y, parameters['projects'], df_prjs)
+                report_page2.add_summary_graph_CO2_categories(y, parameters['projects'], df_cats)
         except: # exception when a project has no structures assigned to it
             pass
         # report pages for input and intermediate results
@@ -397,6 +459,10 @@ def continue_program(st, parameters):
                 mime="application/pdf",
             )
 
+    st.subheader('Reference')
+    pdf1_hyperlink_sharepoint = 'https://bauergroup-my.sharepoint.com/personal/luan_nguyen_bauer_de/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fluan%5Fnguyen%5Fbauer%5Fde%2FDocuments%2FMysite%20Documents%2FF%C3%BCr%20jeden%20freigegeben%2FStreamlit%5Fdocs%2FMixed%2Din%2DPlace%20%28MIP%29%20Baustoff%20der%20Klasse%2060%2D100%2Epdf&parent=%2Fpersonal%2Fluan%5Fnguyen%5Fbauer%5Fde%2FDocuments%2FMysite%20Documents%2FF%C3%BCr%20jeden%20freigegeben%2FStreamlit%5Fdocs'
+    st.write("BAUER MIP Class I. [Open document]({})".format(pdf1_hyperlink_sharepoint))
+
 
 def add_structures_to_projects(structures_to_assign, project_names_to_be_assigned, projects):
     """ Adds selected structure(s) to selected project(s)
@@ -408,8 +474,12 @@ def add_structures_to_projects(structures_to_assign, project_names_to_be_assigne
                     project.add_structure(Anchor())
                 elif structure == 'MIP wall':
                     project.add_structure(MIPWall())
+                elif structure == 'MIP wall EPD':
+                    project.add_structure(MIPWall_EPD())
                 elif structure == 'MIP wall with steel profiles':
                     project.add_structure(MIPSteelProfileWall())
+                elif structure == 'MIP wall with steel profiles EPD':
+                    project.add_structure(MIPSteelProfileWall_EPD())
                 elif structure == 'Pile/ Pile wall':
                     project.add_structure(PileWall())
                 elif structure == 'Diaphragm wall':
