@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.common import get_reinf_rate_cross_section_plane
+from common import get_reinf_rate_cross_section_plane
 
 def main_reinforced_concrete_helper(st):
     """ Helper for steel reinforced concrete"""
