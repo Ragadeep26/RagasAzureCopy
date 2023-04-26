@@ -2,7 +2,7 @@ import sys
 import streamlit as st
 from Reinforcement_helper import main_reinforced_concrete_helper
 
-st.set_page_config(page_title='Piles & panels', layout="wide", page_icon="⚙️")
+st.set_page_config(page_title='Ragatries', layout="wide", page_icon="⚙️")
 
 
 if __name__ == '__main__':
