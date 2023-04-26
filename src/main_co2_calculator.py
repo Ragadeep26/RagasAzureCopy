@@ -1,9 +1,9 @@
 import pickle
 from PIL import Image
 from src.co2_calculator.projects.project import Project
-#from src.co2_calculator.projects.graphs import (create_tCO2eq_piechart, create_tCO2eq_piechart_matplotlib, create_tCO2eq_barchart_all_projects_categories, 
+'''#from src.co2_calculator.projects.graphs import (create_tCO2eq_piechart, create_tCO2eq_piechart_matplotlib, create_tCO2eq_barchart_all_projects_categories, 
 #                                                create_tCO2eq_barchart_all_projects_categories_2, 
-#                                                create_tCO2eq_barchart_all_projects_matplotlib, create_tCO2eq_barchart_all_categories_matplotlib)
+#                                                create_tCO2eq_barchart_all_projects_matplotlib, create_tCO2eq_barchart_all_categories_matplotlib)'''
 from src.co2_calculator.projects.graphs import (create_tCO2eq_piechart_matplotlib, create_tCO2eq_barchart_all_categories_matplotlib)
 from src.co2_calculator.structures.wall_pile import PileWall
 from src.co2_calculator.structures.wall_diaphragm import DiaphragmWall
